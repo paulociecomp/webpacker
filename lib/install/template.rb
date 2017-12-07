@@ -26,6 +26,22 @@ environment <<CONFIG, env: :production
   config.webpacker.check_yarn_integrity = false
 CONFIG
 
+csp_initializer_file = File.join("config", "initializers", "content_security_policy.rb")
+
+if File.exists?(csp_initializer_file)
+  # if file has connect_src append to the end of this line
+  # elsewise add connect_src
+  if File.read(csp_initializer_file) =~ /(p.connect_src.+)$/
+    inject_into_file csp_initializer_file, after: $1 do
+      ", 'ws://localhost:3035', 'http://localhost:3035'"
+    end
+  else
+    inject_into_file csp_initializer_file, after: "Rails.application.config.content_security_policy do |p|\n" do
+      "  p.connect_src :self, :https, 'ws://localhost:3035', 'http://localhost:3035'\n"
+    end
+  end
+end
+
 if File.exists?(".gitignore")
   append_to_file ".gitignore", <<-EOS
 /public/packs
